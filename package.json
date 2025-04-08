@@ -9,17 +9,37 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
   "main": "./dist/extension.js",
-  "contributes": {
-    "commands": [
+  "activationEvents": [
+  "onView:scrollit.chatSidebar"
+],
+"contributes": {
+  "viewsContainers": {
+    "activitybar": [
       {
-        "command": "scrollit-agent.helloWorld",
-        "title": "Hello World"
+        "id": "scrollit",
+        "title": "Scrollit",
+        "icon": "media/icon.svg"
       }
     ]
   },
+  "views": {
+    "scrollit": [
+      {
+        "id": "scrollit.chatSidebar",
+        "name": "Agent"
+      }
+    ]
+  },
+  "commands": [
+    {
+      "command": "scrollit.newTask",
+      "title": "New Task"
+    }
+  ]
+},
   "scripts": {
+    "fast": "node esbuild.js --production",
     "vscode:prepublish": "npm run package",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
@@ -45,5 +65,6 @@
     "typescript": "^5.8.2",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.4.1"
-  }
+  },
+  "license": "MIT"
 }

@@ -1,26 +1,80 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export class ScrollitSidebarProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'scrollit.chatSidebar';
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "scrollit-agent" is now active!');
+  constructor(private readonly context: vscode.ExtensionContext) {}
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('scrollit-agent.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from scrollit-agent!');
-	});
+  resolveWebviewView(webviewView: vscode.WebviewView): void {
+    webviewView.webview.options = {
+      enableScripts: true,
+    };
 
-	context.subscriptions.push(disposable);
+    webviewView.webview.html = this.getHtmlForWebview();
+
+    webviewView.webview.onDidReceiveMessage((message) => {
+      if (message.type === 'prompt') {
+        const text = message.text || '';
+        const response = `🤖 Echo: ${text}`; // Placeholder for now
+        webviewView.webview.postMessage({ type: 'response', text: response });
+      }
+    });
+  }
+
+  private getHtmlForWebview(): string {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+        <body style="font-family:sans-serif;padding:1rem">
+          <h2>🧠 Scrollit Agent</h2>
+          <textarea id="input" rows="5" style="width:100%"></textarea><br/>
+          <button onclick="send()">Send</button>
+          <pre id="output" style="margin-top:10px;white-space:pre-wrap;"></pre>
+
+          <script>
+            const vscode = acquireVsCodeApi();
+
+            function send() {
+              const text = document.getElementById('input').value;
+              vscode.postMessage({ type: 'prompt', text });
+            }
+
+            window.addEventListener('message', event => {
+              const msg = event.data;
+              if (msg.type === 'response') {
+                document.getElementById('output').textContent += '\n' + msg.text;
+              }
+            });
+          </script>
+        </body>
+      </html>
+    `;
+  }
 }
 
-// This method is called when your extension is deactivated
+export function activate(context: vscode.ExtensionContext) {
+  const provider = new ScrollitSidebarProvider(context);
+  console.log("✅ Scrollit Agent Activated");
+
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      ScrollitSidebarProvider.viewType,
+      provider,
+      {
+        webviewOptions: {
+          retainContextWhenHidden: true
+        }
+      }
+    )
+  );
+
+  vscode.commands.executeCommand('setContext', 'scrollit.isDevMode', true);
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('scrollit.newTask', () => {
+      vscode.window.showInformationMessage('🧠 New Scrollit task triggered!');
+    })
+  );
+}
+
 export function deactivate() {}
